@@ -51,18 +51,19 @@ interface IDefiBridge {
         Types.AztecAsset calldata outputAssetB,
         uint256 inputValue,
         uint256 interactionNonce,
-        uint64 auxData
+        uint64 auxData, // @marc can use the aux interface to specify price, done by the client or the sdk
     )
         external
         payable
         returns (
             uint256 outputValueA,
             uint256 outputValueB,
-            bool
+            bool isAsync, // @marc tells the rollup contract if it should expects the results back from this interaction now or in the future
         );
 
     // @dev This function is called from the RollupProcessor.sol contract via the DefiBridgeProxy
     // @param uint256 interactionNonce
+    // @marc finilise the transaction (close position .. )
     function canFinalise(uint256 interactionNonce) external view returns (bool);
 
     // @dev This function is called from the RollupProcessor.sol contract via the DefiBridgeProxy. It receives the aggreagte sum of all users funds for the input assets.
@@ -70,5 +71,6 @@ interface IDefiBridge {
     // @return uint256 outputValueA the return value of output asset A
     // @return uint256 outputValueB optional return value of output asset B
     // @dev this function should have a modifier on it to ensure it can only be called by the Rollup Contract
+    // @marc returns the values back to the rollup. It is the settelement to dispurse all the funds back to the users who participated in the trade
     function finalise(uint256 interactionNonce) external payable returns (uint256 outputValueA, uint256 outputValueB);
 }

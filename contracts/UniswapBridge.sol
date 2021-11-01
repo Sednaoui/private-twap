@@ -14,6 +14,10 @@ import {Types} from './Types.sol';
 
 // import 'hardhat/console.sol';
 
+
+// @marc we will come up with our own uniswap bridge contract to implement TWAP
+// @marc challenge one is to enhance this bridge contract for multiple asset? 
+// @marc at the moment it is ETH to any token or any token to ETH
 contract UniswapBridge is IDefiBridge {
     using SafeMath for uint256;
 

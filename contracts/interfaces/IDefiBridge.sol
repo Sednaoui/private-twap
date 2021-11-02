@@ -51,14 +51,14 @@ interface IDefiBridge {
         Types.AztecAsset calldata outputAssetB,
         uint256 inputValue,
         uint256 interactionNonce,
-        uint64 auxData, // @marc can use the aux interface to specify price, done by the client or the sdk
+        uint64 auxData // @marc can use the aux interface to specify price, done by the client or the sdk
     )
         external
         payable
         returns (
             uint256 outputValueA,
             uint256 outputValueB,
-            bool isAsync, // @marc tells the rollup contract if it should expects the results back from this interaction now or in the future
+            bool isAsync // @marc tells the rollup contract if it should expects the results back from this interaction now or in the future
         );
 
     // @dev This function is called from the RollupProcessor.sol contract via the DefiBridgeProxy

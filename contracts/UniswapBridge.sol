@@ -80,6 +80,8 @@ contract UniswapBridge is IDefiBridge {
             address[] memory path = new address[](2);
             path[0] = inputAssetA.erc20Address;
             path[1] = outputAssetA.erc20Address;
+            
+            require(inputAssetA.erc20Address != outputAssetA.erc20Address, 'Cannot trade same token');
             require(
                 IERC20(inputAssetA.erc20Address).approve(address(router), inputValue),
                 'UniswapBridge: APPROVE_FAILED'

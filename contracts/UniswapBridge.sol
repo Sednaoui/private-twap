@@ -76,9 +76,16 @@ contract UniswapBridge is IDefiBridge {
             );
             amounts = router.swapExactTokensForETH(inputValue, 0, path, rollupProcessor, deadline);
             outputValueA = amounts[1];
-        } else {
-            // TODO what about swapping tokens?
-            revert('UniswapBridge: INCOMPATIBLE_ASSET_PAIR');
+        } else {  // inputAssetA.assetType == Types.AztecAssetType.ERC20 && outputAssetA.assetType == Types.AztecAssetType.ERC20
+            address[] memory path = new address[](2);
+            path[0] = inputAssetA.erc20Address;
+            path[1] = outputAssetA.erc20Address;
+            require(
+                IERC20(inputAssetA.erc20Address).approve(address(router), inputValue),
+                'UniswapBridge: APPROVE_FAILED'
+            );
+            amounts = router.swapExactTokensForTokens(inputValue, 0, path, rollupProcessor, deadline);
+            outputValueA = amounts[1];
         }
     }
 

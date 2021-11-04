@@ -24,6 +24,8 @@ contract UniswapBridge is IDefiBridge {
     address public immutable rollupProcessor;
     address public weth;
 
+    uint public creationTime = block.timestamp;
+
     uint256 inputs;
     uint256 outputs;
     Types.AztecAsset inputAssetA;
@@ -38,6 +40,15 @@ contract UniswapBridge is IDefiBridge {
     }
 
     receive() external payable {}
+
+    // Too early, let's wait for some time maybe more depositers will come.
+    error TooEarly();
+
+    modifier swapOnlyAfter(uint _time) {
+        if (block.timestamp < _time)
+            revert TooEarly();
+        _;
+    }
 
     function convert(
         Types.AztecAsset calldata _inputAssetA,
@@ -68,7 +79,7 @@ contract UniswapBridge is IDefiBridge {
         inputs += inputValue
     }
 
-    function swap(uint256 inputValue) external payable {
+    function swap(uint256 inputValue) external payable onlyAfter(creationTime + 2 minutes) {
         isAsync = false;
         uint256[] memory amounts;
         uint256 deadline = block.timestamp;

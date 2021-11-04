@@ -24,6 +24,11 @@ contract UniswapBridge is IDefiBridge {
     address public immutable rollupProcessor;
     address public weth;
 
+    uint256 inputs;
+    uint256 outputs;
+    Types.AztecAsset inputAssetA;
+    Types.AztecAsset outputAssetA; 
+
     IUniswapV2Router02 router;
 
     constructor(address _rollupProcessor, address _router) public {
@@ -35,9 +40,9 @@ contract UniswapBridge is IDefiBridge {
     receive() external payable {}
 
     function convert(
-        Types.AztecAsset calldata inputAssetA,
+        Types.AztecAsset calldata _inputAssetA,
         Types.AztecAsset calldata,
-        Types.AztecAsset calldata outputAssetA,
+        Types.AztecAsset calldata _outputAssetA,
         Types.AztecAsset calldata,
         uint256 inputValue,
         uint256,
@@ -53,17 +58,29 @@ contract UniswapBridge is IDefiBridge {
         )
     {
         require(msg.sender == rollupProcessor, 'UniswapBridge: INVALID_CALLER');
+        isAsync = true;
+        outputValueA = 0;
+        // TODO This should check the pair exists on UNISWAP instead of blindly trying to swap.
+
+        inputAssetA = _inputAssetA
+        outputAssetA = _outputAssetA
+
+        inputs += inputValue
+    }
+
+    function swap(uint256 inputValue) external payable {
         isAsync = false;
         uint256[] memory amounts;
         uint256 deadline = block.timestamp;
-        // TODO This should check the pair exists on UNISWAP instead of blindly trying to swap.
 
         if (inputAssetA.assetType == Types.AztecAssetType.ETH && outputAssetA.assetType == Types.AztecAssetType.ERC20) {
             address[] memory path = new address[](2);
             path[0] = weth;
             path[1] = outputAssetA.erc20Address;
             amounts = router.swapExactETHForTokens{value: inputValue}(0, path, rollupProcessor, deadline);
-            outputValueA = amounts[1];
+            
+            inputs -= inputValue
+            outputs += amounts[1]
         } else if (
             inputAssetA.assetType == Types.AztecAssetType.ERC20 && outputAssetA.assetType == Types.AztecAssetType.ETH
         ) {
@@ -75,29 +92,34 @@ contract UniswapBridge is IDefiBridge {
                 'UniswapBridge: APPROVE_FAILED'
             );
             amounts = router.swapExactTokensForETH(inputValue, 0, path, rollupProcessor, deadline);
-            outputValueA = amounts[1];
+
+            inputs -= inputValue
+            outputs += amounts[1]
         } else {  // inputAssetA.assetType == Types.AztecAssetType.ERC20 && outputAssetA.assetType == Types.AztecAssetType.ERC20
+            require(inputAssetA.erc20Address != outputAssetA.erc20Address, 'Cannot trade same token');
             address[] memory path = new address[](2);
             path[0] = inputAssetA.erc20Address;
             path[1] = outputAssetA.erc20Address;
             
-            require(inputAssetA.erc20Address != outputAssetA.erc20Address, 'Cannot trade same token');
             require(
                 IERC20(inputAssetA.erc20Address).approve(address(router), inputValue),
                 'UniswapBridge: APPROVE_FAILED'
             );
             amounts = router.swapExactTokensForTokens(inputValue, 0, path, rollupProcessor, deadline);
-            outputValueA = amounts[1];
+
+            inputs -= inputValue
+            outputs += amounts[1]
         }
     }
 
     function canFinalise(
         uint256 /*interactionNonce*/
     ) external view override returns (bool) {
-        return false;
+        return inputs == 0;
     }
 
-    function finalise(uint256) external payable override returns (uint256, uint256) {
-        require(false);
+    function finalise(uint256) external payable override returns (uint256 outputValueA, uint256) {
+        require(msg.sender == rollupProcessor, 'UniswapBridge: INVALID_CALLER');
+        outputValueA = outputs;
     }
 }
